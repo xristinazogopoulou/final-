@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<table>
+    <tr><th>sender (age)</th><th>message</th><th>created_at</th></tr>
+    {% for message in messages %}
+    <tr>
+        <td>{{message['username']}} {{message['age']}}  </td>
+        <td>{{message['message']}}</td>
+        <td>{{message['created_at']}}  </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}
+
