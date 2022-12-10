@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+
+{% block content %}
+<table>
+    <tr><th>sender (age)</th><th>message</th><th>created_at</th></tr>
+    {% for message in messages %}
+    <tr>
+        <td>{{message['username']}} {{message['age']}}  </td>
+        <td>{{message['message']}}</td>
+        <td>{{message['created_at']}}  </td>
+    </tr>
+    {%if username == message.username %}
+            <a class="delete-message" href= "/delete_message/{{message.id}}">delete </a>
+            <a class="delete-message" href= "/edit_message/{{message.id}}"> edit </a>
+        {% endif %}
+    {% endfor %}
+</table>
+{% endblock %}
+
