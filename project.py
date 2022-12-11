@@ -13,9 +13,9 @@ import sqlite3
 from flask import Flask, render_template, request, make_response, redirect, url_for
 from datetime import datetime
 
-from flask_babel import Babel, format_date
+from flask_babel import Babel, gettext 
 app = Flask(__name__) #creates an app for us
-app.config['BABEL_DEFAULT_LOCALE'] ='en'
+app.config['BABEL_DEFAULT_LOCALE'] ='es'
 babel = Babel(app)
 
 con = sqlite3con = sqlite3.connect('twitter_clone.db')
@@ -25,6 +25,8 @@ import argparse
 parser = argparse.ArgumentParser(description='Create a database for the twitter project')
 parser.add_argument('--db_file', default='twitter_clone.db')
 args = parser.parse_args()
+
+from werkzeug.security import generate_password_hash, check_password_hash
 
 def print_debug_info():
     # Get method
@@ -39,12 +41,21 @@ def print_debug_info():
 
 @babel.localeselector
 def get_locale():
-    return 'zh'
-    #request.accept_languages.best_match(['en','es', 'de'])
+    
+    request.accept_languages.best_match(['es', 'el'])
+
+# class id(args.db_file): 
+#     # ...
+
+#     def set_password(self, password):
+#         self.password_hash = generate_password_hash(password)
+
+#     def check_password(self, password):
+#         return check_password_hash(self.password_hash, password)
 
 @app.route('/') #index page
 def root():
-    
+
     # connect to the database
     con = sqlite3.connect(args.db_file)
     # construct messages,
@@ -157,7 +168,10 @@ def create_user():
             try:
                 cur.execute(sql, [username, password, age])
                 con.commit()
-                return render_template('create_user.html', usercreated=True)
+                response = make_response(redirect(url_for('root')))
+                response.set_cookie('username', username)
+                response.set_cookie('password', password)
+                return response
             except:
                 return render_template('create_user.html', usercreated= False, error= True )
         else:
@@ -200,8 +214,88 @@ def search_message():
     else:
         return render_template('search_message.html', default=True, username=request.cookies.get('username'), password=request.cookies.get('password'))
 
+@app.route('/change_password/<username>', methods=['post', 'get'])
+def change_password(username):
+    if request.form.get('oldPassword'):
+        if request.cookies.get('username') == username:
+            con = sqlite3.connect(args.db_file) 
+            cur = con.cursor()
+            cur.execute('''
+                SELECT password from users where username=?;
+            ''', (username,))
+            rows = cur.fetchall()
+            oldPassword = rows[0][0]
+            
+            if request.form.get('oldPassword') == oldPassword:
+                if request.form.get('password1') == request.form.get('password2'):
+                    cur.execute('''
+                        UPDATE users
+                        SET password = ?
+                        WHERE username = ?
+                    ''', (request.form.get('password1'), request.cookies.get('username')))
+                    con.commit()
+                    return make_response(render_template('change_password.html', allGood=True, username=request.cookies.get('username'), password=request.cookies.get('password')))
+                else: 
+                    return make_response(render_template('change_password.html', repeatPass=True, username=request.cookies.get('username'), password=request.cookies.get('password')))
+            else: 
+                return make_response(render_template('change_password.html', wrongPass=True, username=request.cookies.get('username'), password=request.cookies.get('password')))
+        else: 
+            return make_response(render_template('change_password.html', not_your_username=True, username=request.cookies.get('username'), password=request.cookies.get('password')))
+    else: return make_response(render_template('change_password.html', username=request.cookies.get('username'), password=request.cookies.get('password')))
+
+@app.route('/user')
+def user():
+    if(request.cookies.get('username') and request.cookies.get('password')):
+        con = sqlite3.connect(args.db_file)
+        cur = con.cursor()
+        cur.execute('''
+            SELECT message, created_at, id from messages where sender_id=?;
+        ''', (request.cookies.get('username'),))
+        rows = cur.fetchall()
+        messages = []
+        for row in rows:
+            messages.append({'text': row[0], 'created_at': row[1], 'id':row[2]})
+        messages.reverse()
+        return make_response(render_template('user.html', messages=messages, username=request.cookies.get('username'), password=request.cookies.get('password')))
+    else: 
+        return login()
+
+@app.route('/delete_account/<username>')
+def delete_account(username):
+    if request.cookies.get('username') == username:
+        con = sqlite3.connect(args.db_file) 
+        cur = con.cursor()
+        cur.execute('''
+            DELETE from users where username=?;
+        ''', (username,))
+        con.commit()
+        return make_response(render_template('delete_account.html', not_your_username=False, username=request.cookies.get('username'), password=request.cookies.get('password')))
+    else:
+        return make_response(render_template('delete_account.html', not_your_username=True, username=request.cookies.get('username'), password=request.cookies.get('password')))
 '''@app.route('/static')s
 def create_static():
     return render_template('static')'''
+
+@app.route('/edit_message/<id>', methods=['POST', 'GET'])
+def edit_message(id):
+    if request.form.get('newMessage'):
+        con = sqlite3.connect(args.db_file) 
+        cur = con.cursor()
+        cur.execute('''
+            SELECT sender_id, message from messages where id=?;
+        ''', (id,))
+        rows = cur.fetchall()
+        if rows[0][0] == request.cookies.get('username'):
+            cur.execute('''
+                UPDATE messages
+                SET message = ?
+                WHERE id = ?
+            ''', (request.form.get('newMessage'),id))
+            con.commit()
+            return make_response(render_template('edit_message.html',allGood=True, id=id, username=request.cookies.get('username'), password=request.cookies.get('password')))
+        else:
+            return make_response(render_template('edit_message.html',not_your=True, id=id, username=request.cookies.get('username'), password=request.cookies.get('password')))
+    else:
+        return make_response(render_template('edit_message.html',default=True, id=id, username=request.cookies.get('username'), password=request.cookies.get('password')))
 
 app.run()
