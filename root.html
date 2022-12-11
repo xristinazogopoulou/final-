@@ -10,10 +10,6 @@
         <td>{{message['message']}}</td>
         <td>{{message['created_at']}}  </td>
     </tr>
-    {%if username == message.username %}
-            <a class="delete-message" href= "/delete_message/{{message.id}}">delete </a>
-            <a class="delete-message" href= "/edit_message/{{message.id}}"> edit </a>
-        {% endif %}
     {% endfor %}
 </table>
 {% endblock %}
