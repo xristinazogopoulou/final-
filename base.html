@@ -1,0 +1,29 @@
+<html>
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+    <head>
+        <title>{{_('CS40 Twitter Clone')}}</title>
+    </head>
+    <body>
+        <h1>{{_('CS40 Twitter Clone')}}</h1>
+        <h1> {{_('Computer')}}</h1>
+        <ol>
+            <li><a href ='/'> {{_('Home')}} </a></li>
+            {% if logged_in %}
+            <li><a href='/create_message'>{{_('Create Message')}}</a></li>
+            <li><a href='/search_message'>{{_('Search Message')}}</a></li>
+            <li><a href='/logout'>{{_('Logout')}}</a></li>
+            <li><a href= "/user">Your account</a></li>
+
+            {% else %}
+            <li><a href='/login'>{{_('Login')}}</a></li>
+
+            <li><a href='/create_user'>{{_('Create User')}}</a></li>
+            {% endif %}
+
+        </ol>
+
+        {%block content%}
+        {%endblock%}
+    </body>
+</html>
+
